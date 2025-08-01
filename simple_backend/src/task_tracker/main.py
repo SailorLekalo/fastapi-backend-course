@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from enum import Enum
 from dotenv import load_dotenv
+from openai import OpenAI
 import json
 import random
 import requests
@@ -15,7 +16,8 @@ class Status(Enum):
     
 class Task(BaseModel):
     status: Status
-    descr:str
+    descr: str
+    ai_solve_idea: str = ""
 
 class Storage:
     __TOKEN: str
@@ -61,8 +63,10 @@ app = FastAPI()
 load_dotenv()
 storage = Storage(os.getenv('TOKEN'), os.getenv('GIST_ID'), os.getenv('GIST_FILENAME'))
 
-
-
+client = OpenAI(
+  base_url="https://openrouter.ai/api/v1",
+  api_key=os.getenv('OPENROUTER_API_KEY'),
+)
 @app.get("/tasks")
 def get_tasks():
     return storage.get_tasks_from_database()
@@ -75,7 +79,23 @@ def create_task(task:Task):
     task_id = abs(hash(random.randbytes(32)))
     
     tasks = storage.get_tasks_from_database()
-            
+
+    
+    completion = client.chat.completions.create(
+        model="deepseek/deepseek-r1:free",
+        messages=[
+            {
+                "role": "system",
+                "content": "You are an assistaint. User will send you task, and you must give user an advice about how to solve this task. Answer in russian."
+            },
+            {
+                "role": "user",
+                "content": task['descr']
+            }
+        ]
+    )
+    print(completion.choices[0].message.content)
+    task['ai_solve_idea'] = completion.choices[0].message.content
     tasks[task_id] = task
 
     storage.dump_tasks_to_database(tasks)
