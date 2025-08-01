@@ -1,8 +1,11 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from enum import Enum
+from dotenv import load_dotenv
 import json
 import random
+import requests
+import os
 
 class Status(Enum):
     OPEN = "OPEN"
@@ -14,28 +17,51 @@ class Task(BaseModel):
     status: Status
     descr:str
 
-class Storage():
-    __storage: str|None
-    def __init___(self, storage:str|None):
-        self.storage = storage
-        if not os.path.exists(self.storage):
-             with open(self.filename, "w") as f:
-                json.dump({}, f)
+class Storage:
+    __TOKEN: str
+    __GIST_ID: str
+    __GIST_FILENAME: str
+    
+    def __init__(self, TOKEN: str, GIST_ID: str, GIST_FILENAME: str):
+        self.__TOKEN = TOKEN
+        self.__GIST_ID = GIST_ID
+        self.__GIST_FILENAME = GIST_FILENAME
         
     def get_tasks_from_database(self):
-        with open(storage, "r") as db:
-            try:
-                tasks = json.load(db)
-            except json.JSONDecodeError:
-                tasks = {}
-        return tasks
+        
+        url = f"https://api.github.com/gists/{self.__GIST_ID}"
+        headers = {
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28"
+        }
+
+        response = requests.get(url, headers=headers)
+        return json.loads(response.json()['files'][self.__GIST_FILENAME]['content'])
 
     def dump_tasks_to_database(self,tasks):
-        with open(storage,"w") as db:
-            json.dump(tasks,db,indent=4)
+        url = f"https://api.github.com/gists/{self.__GIST_ID}"
+        headers = {
+            "Accept": "application/vnd.github+json",
+            "Authorization": f"Bearer {self.__TOKEN}",
+            "X-GitHub-Api-Version": "2022-11-28"
+        }
+        data = {
+            "files": {
+                f"{self.__GIST_FILENAME}": {
+                    "content": json.dumps(tasks,ensure_ascii=False)
+                }
+            }
+        }
+        response = requests.patch(url, headers=headers, json=data)
+        print(response)
+        
+
 
 app = FastAPI()
-storage = Storage("database.json")
+load_dotenv()
+storage = Storage(os.getenv('TOKEN'), os.getenv('GIST_ID'), os.getenv('GIST_FILENAME'))
+
+
 
 @app.get("/tasks")
 def get_tasks():
