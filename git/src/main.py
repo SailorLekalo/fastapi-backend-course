@@ -1,6 +1,7 @@
 import json
 import os
 
+
 def load_books(filename='library.json'):
     """
     Загрузка списка книг из JSON-файла.
@@ -8,11 +9,13 @@ def load_books(filename='library.json'):
     """
     if not os.path.isfile(filename):
         return []
+
     with open(filename, 'r', encoding='utf-8') as file:
         try:
             return json.load(file)
         except json.JSONDecodeError:
             return []
+
 
 def save_books(books, filename='library.json'):
     """
@@ -29,6 +32,7 @@ def list_books(books):
         return "Библиотека пуста."
     result_lines = []
     for idx, book in enumerate(books, start=1):
+
         result_lines.append(f"{idx}. {book['title']} | {book['author']} | {book['year']}")
     return "\n".join(result_lines)
 
@@ -37,6 +41,7 @@ def add_book(books, title, author, year):
     Принимает текущий список книг и данные о новой книге.
     Возвращает новый список, в котором добавлена новая книга.
     """
+
     new_book = {
         'title': title,
         'author': author,
@@ -45,12 +50,14 @@ def add_book(books, title, author, year):
     # Создаём НОВЫЙ список, добавляя new_book
     return books + [new_book]
 
+
 def remove_book(books, title):
     """
     Принимает текущий список книг и название книги для удаления.
     Возвращает новый список без книги, у которой совпадает название.
     """
     # Фильтруем список: оставляем только те книги, у которых название не совпадает с переданным
+
     return [book for book in books if book['title'].lower() != title.lower()]
 
 def search_books(books, keyword):
@@ -81,11 +88,13 @@ def main():
 
         choice = input("Выберите действие (1-5): ").strip()
 
+
         if choice == '1':
             print("\nСписок книг:")
             print(list_books(books))
 
         elif choice == '2':
+
             print("\nДобавление новой книги:")
             title = input("Введите название: ").strip()
             author = input("Введите автора: ").strip()
@@ -94,6 +103,7 @@ def main():
             # Получаем новый список с добавленной книгой
             new_books = add_book(books, title, author, year)
             books = new_books  # Обновляем переменную, чтобы сохранить изменения
+
             save_books(books)  # Сразу сохраняем в файл
             print("Книга добавлена!")
 
@@ -105,13 +115,16 @@ def main():
             if len(new_books) < len(books):
                 books = new_books
                 save_books(books)
+
                 print("Книга удалена!")
             else:
                 print("Книга с таким названием не найдена.")
 
+
         elif choice == '4':
             print("\nПоиск книг:")
             keyword = input("Введите ключевое слово для поиска (в названии или авторе): ").strip()
+
             found_books = search_books(books, keyword)
             if found_books:
                 print("\nНайденные книги:")
@@ -119,7 +132,9 @@ def main():
             else:
                 print("Ничего не найдено.")
 
+
         elif choice == '5':
+
             print("Выход из программы.")
             break
 
